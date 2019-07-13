@@ -4,7 +4,7 @@
 #import <React/RCTBridgeModule.h>
 #import <Photos/Photos.h>
 
-#import "VydiaRNFileUploader.h"
+#import "VydiaRNFileUploader.h" 
 
 @implementation VydiaRNFileUploader
 
@@ -221,7 +221,7 @@ RCT_EXPORT_METHOD(startUpload:(NSDictionary *)options resolve:(RCTPromiseResolve
         }
 
         uploadTask.taskDescription = customUploadId ? customUploadId : [NSString stringWithFormat:@"%i", thisUploadId];
-        NSLog(@"RNBU will start upload %i", thisUploadId);
+        NSLog(@"RNBU will start upload %@", uploadTask.taskDescription);
         [uploadTask resume];
         resolve(uploadTask.taskDescription);
     }
@@ -371,18 +371,18 @@ totalBytesExpectedToSend:(int64_t)totalBytesExpectedToSend {
     if (backgroundSessionCompletionHandler) {
         NSLog(@"RNBU Did Finish Events For Background URLSession (has backgroundSessionCompletionHandler)");
         // This long delay is set as a security if the JS side does not call :canSuspendIfBackground: promptly
-        // disable this for now, let the programmer be responsible
-        // double delayInSeconds = 60.0;
-        // dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, delayInSeconds * NSEC_PER_SEC);
-        // dispatch_after(popTime, dispatch_get_main_queue(), ^(void){
-        //     if (backgroundSessionCompletionHandler) {
-        //         backgroundSessionCompletionHandler();
-        //         NSLog(@"RNBU did call backgroundSessionCompletionHandler (timeout)");
-        //         backgroundSessionCompletionHandler = nil;
-        //     }
-        // });
+//        double delayInSeconds = 60.0;
+//
+//        dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, delayInSeconds * NSEC_PER_SEC);
+//        dispatch_after(popTime, dispatch_get_main_queue(), ^(void){
+//            if (backgroundSessionCompletionHandler) {
+//                backgroundSessionCompletionHandler();
+//                NSLog(@"RNBU did call backgroundSessionCompletionHandler (timeout)");
+//                backgroundSessionCompletionHandler = nil;
+//            }
+//        });
     } else {
-        //NSLog(@"RNBU Did Finish Events For Background URLSession (no backgroundSessionCompletionHandler)");
+        NSLog(@"RNBU Did Finish Events For Background URLSession (no backgroundSessionCompletionHandler)");
     }
 }
 
