@@ -2,7 +2,7 @@
 /**
  * Handles HTTP background file uploads from an iOS device.
  */
-import { Platform, NativeModules, DeviceEventEmitter } from 'react-native'
+import { Platform, NativeModules, NativeEventEmitter } from 'react-native'
 
 export type UploadEvent = 'progress' | 'error' | 'completed' | 'cancelled'
 
@@ -29,13 +29,8 @@ export type StartUploadArgs = {
 const NativeModule = NativeModules.VydiaRNFileUploader;
 const eventPrefix = 'RNFileUploader-'
 
-// for IOS, register event listeners or else they don't fire on DeviceEventEmitter
-if (NativeModules.VydiaRNFileUploader) {
-  NativeModule.addListener(eventPrefix + 'progress')
-  NativeModule.addListener(eventPrefix + 'error')
-  NativeModule.addListener(eventPrefix + 'cancelled')
-  NativeModule.addListener(eventPrefix + 'completed')
-}
+
+const eventEmitter = new NativeEventEmitter(NativeModule);
 
 /*
 Gets file information for the path specified.
@@ -106,7 +101,7 @@ Events (id is always the upload ID):
   completed - { id: string }
 */
 export const addListener = (eventType: UploadEvent, uploadId: string, listener: Function) => {
-  return DeviceEventEmitter.addListener(eventPrefix + eventType, (data) => {
+  return eventEmitter.addListener(eventPrefix + eventType, (data) => {
     if (!uploadId || !data || !data.id || data.id === uploadId) {
       listener(data)
     }
