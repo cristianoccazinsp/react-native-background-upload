@@ -16,6 +16,7 @@ static VydiaRNFileUploader* staticInstance = nil;
 static NSString *BACKGROUND_SESSION_ID = @"ReactNativeBackgroundUpload";
 NSMutableDictionary *_responsesData;
 NSURLSession *_urlSession = nil;
+bool hasListeners;
 void (^backgroundSessionCompletionHandler)(void) = nil;
 
 + (BOOL)requiresMainQueueSetup {
@@ -32,8 +33,18 @@ void (^backgroundSessionCompletionHandler)(void) = nil;
 }
 
 - (void)_sendEventWithName:(NSString *)eventName body:(id)body {
-    if (staticInstance == nil) return;
-    [staticInstance sendEventWithName:eventName body:body];
+    
+    // add a delay to give time to event listeners to be set up
+    double delayInSeconds = 0.5;
+    dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, delayInSeconds * NSEC_PER_SEC);
+    
+    dispatch_after(popTime, dispatch_get_main_queue(), ^(void){
+        if (staticInstance == nil) return;
+        if (hasListeners) {
+            [staticInstance sendEventWithName:eventName body:body];
+        }
+    });
+   
 }
 
 - (NSArray<NSString *> *)supportedEvents {
@@ -46,6 +57,8 @@ void (^backgroundSessionCompletionHandler)(void) = nil;
 }
 
 - (void)startObserving {
+    hasListeners = YES;
+    
     // JS side is ready to receive events; create the background url session if necessary
     // iOS will then deliver the tasks completed while the app was dead (if any)
     double delayInSeconds = 0.5;
@@ -54,6 +67,10 @@ void (^backgroundSessionCompletionHandler)(void) = nil;
         NSLog(@"RNBU startObserving: recreate urlSession if necessary");
         [self urlSession];
     });
+}
+
+-(void)stopObserving {
+    hasListeners = NO;
 }
 
 + (void)setBackgroundSessionCompletionHandler:(void (^)(void))handler {
