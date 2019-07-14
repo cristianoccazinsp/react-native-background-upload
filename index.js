@@ -114,4 +114,11 @@ export const canSuspendIfBackground = () => {
   }
 };
 
-export default { startUpload, cancelUpload, addListener, getFileInfo, canSuspendIfBackground}
+// returns remaining background time in seconds
+export const getRemainingBgTime = (): Promise<number> => {
+  if (Platform.OS === 'ios') {
+    return NativeModule.getRemainingBgTime();
+  }
+};
+
+export default { startUpload, cancelUpload, addListener, getFileInfo, canSuspendIfBackground, getRemainingBgTime}

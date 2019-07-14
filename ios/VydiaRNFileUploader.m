@@ -264,6 +264,18 @@ RCT_EXPORT_METHOD(cancelUpload: (NSString *)cancelUploadId resolve:(RCTPromiseRe
     resolve([NSNumber numberWithBool:YES]);
 }
 
+/*
+ * Returns remaining allowed background time
+ */
+RCT_REMAP_METHOD(getRemainingBgTime, resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject) {
+
+    dispatch_sync(dispatch_get_main_queue(), ^(void){
+        double time = [[UIApplication sharedApplication] backgroundTimeRemaining];
+        //NSLog(@"Background time Remaining: %f", time);
+        resolve([NSNumber numberWithDouble:time]);
+    });
+}
+
 RCT_EXPORT_METHOD(canSuspendIfBackground) {
     //NSLog(@"RNBU canSuspendIfBackground");
     dispatch_sync(dispatch_get_main_queue(), ^(void){
@@ -383,21 +395,40 @@ totalBytesExpectedToSend:(int64_t)totalBytesExpectedToSend {
 }
 
 
-// Updated this slightly, reduced delay so it really doesn't need to be called under some safe time window
+// if we have ran out of time and completion handler wasn't called,
+// call it
 - (void)URLSessionDidFinishEventsForBackgroundURLSession:(NSURLSession *)session {
     if (backgroundSessionCompletionHandler) {
-        //NSLog(@"RNBU Did Finish Events For Background URLSession (has backgroundSessionCompletionHandler)");
-        // This long delay is set as a security if the JS side does not call :canSuspendIfBackground: promptly
-//        double delayInSeconds = 60.0;
-//
-//        dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, delayInSeconds * NSEC_PER_SEC);
-//        dispatch_after(popTime, dispatch_get_main_queue(), ^(void){
-//            if (backgroundSessionCompletionHandler) {
-//                backgroundSessionCompletionHandler();
-//                NSLog(@"RNBU did call backgroundSessionCompletionHandler (timeout)");
-//                backgroundSessionCompletionHandler = nil;
-//            }
-//        });
+
+        // get remaining time from UI thread
+        // and set a timeout
+        dispatch_sync(dispatch_get_main_queue(), ^(void){
+            
+            double time = [[UIApplication sharedApplication] backgroundTimeRemaining];
+            //NSLog(@"Background time Remaining: %f", time);
+            
+            // if we still have a handler
+            if (backgroundSessionCompletionHandler) {
+                if(time > 0){
+                    dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, time * NSEC_PER_SEC);
+                    dispatch_after(popTime, dispatch_get_main_queue(), ^(void){
+                        if (backgroundSessionCompletionHandler) {
+                            backgroundSessionCompletionHandler();
+                            //NSLog(@"RNBU did call backgroundSessionCompletionHandler (timeout)");
+                            backgroundSessionCompletionHandler = nil;
+                        }
+                    });
+                }
+                // if already ran out of time, call it
+                else{
+                    if (backgroundSessionCompletionHandler) {
+                        backgroundSessionCompletionHandler();
+                        //NSLog(@"RNBU did call backgroundSessionCompletionHandler (instant timeout)");
+                        backgroundSessionCompletionHandler = nil;
+                    }
+                }
+            }
+        });
     } else {
         //NSLog(@"RNBU Did Finish Events For Background URLSession (no backgroundSessionCompletionHandler)");
     }
