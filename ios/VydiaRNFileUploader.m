@@ -12,7 +12,7 @@ RCT_EXPORT_MODULE();
 
 UIBackgroundTaskIdentifier backgroundUpdateTask;
 
-@synthesize bridge = _bridge;
+//@synthesize bridge = _bridge; // not needed when using  RCTEventEmitter
 static int uploadId = 0;
 static VydiaRNFileUploader* staticInstance = nil;
 static NSString *BACKGROUND_SESSION_ID = @"ReactNativeBackgroundUpload";
