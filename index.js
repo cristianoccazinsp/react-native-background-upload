@@ -130,4 +130,21 @@ export const getRemainingBgTime = (): Promise<number> => {
   }
 };
 
-export default { startUpload, cancelUpload, addListener, getFileInfo, canSuspendIfBackground, getRemainingBgTime}
+// marks the beginning of a background task
+// in order to request extra background time
+// do not call more than once without calling endBackgroundTask
+// useful if we need to do more background processing in addition to network requests
+// canSuspendIfBackground should still be called in case we run out of time.
+export const beginBackgroundTask = (): Promise<number> => {
+  if (Platform.OS === 'ios') {
+    return NativeModule.beginBackgroundTask();
+  }
+};
+
+export const endBackgroundTask = (): Promise<boolean> => {
+  if (Platform.OS === 'ios') {
+    return NativeModule.endBackgroundTask();
+  }
+};
+
+export default { startUpload, cancelUpload, addListener, getFileInfo, canSuspendIfBackground, getRemainingBgTime, beginBackgroundTask, endBackgroundTask}

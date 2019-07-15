@@ -10,6 +10,8 @@
 
 RCT_EXPORT_MODULE();
 
+UIBackgroundTaskIdentifier backgroundUpdateTask;
+
 @synthesize bridge = _bridge;
 static int uploadId = 0;
 static VydiaRNFileUploader* staticInstance = nil;
@@ -28,6 +30,7 @@ void (^backgroundSessionCompletionHandler)(void) = nil;
     if (self) {
         staticInstance = self;
         _responsesData = [NSMutableDictionary dictionary];
+        backgroundUpdateTask = UIBackgroundTaskInvalid;
     }
     return self;
 }
@@ -264,10 +267,11 @@ RCT_EXPORT_METHOD(cancelUpload: (NSString *)cancelUploadId resolve:(RCTPromiseRe
     resolve([NSNumber numberWithBool:YES]);
 }
 
+
 /*
  * Returns remaining allowed background time
  */
-RCT_REMAP_METHOD(getRemainingBgTime, resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject) {
+RCT_REMAP_METHOD(getRemainingBgTime, getRemainingBgTimeResolver:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject) {
 
     dispatch_sync(dispatch_get_main_queue(), ^(void){
         double time = [[UIApplication sharedApplication] backgroundTimeRemaining];
@@ -276,6 +280,7 @@ RCT_REMAP_METHOD(getRemainingBgTime, resolve:(RCTPromiseResolveBlock)resolve rej
     });
 }
 
+// Let the OS it can suspend, must be called after enqueing all requests
 RCT_EXPORT_METHOD(canSuspendIfBackground) {
     //NSLog(@"RNBU canSuspendIfBackground");
     dispatch_sync(dispatch_get_main_queue(), ^(void){
@@ -286,6 +291,47 @@ RCT_EXPORT_METHOD(canSuspendIfBackground) {
         }
     });
 }
+
+// requests / releases background task time to the OS
+// returns task id
+RCT_REMAP_METHOD(beginBackgroundTask, beginBackgroundTaskResolver:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject){
+    
+    //NSLog(@"beginBackgroundTask called");
+    unsigned long res = [self beginBackgroundUpdateTask];
+    resolve([NSNumber numberWithUnsignedInteger:res]);
+    
+}
+
+RCT_REMAP_METHOD(endBackgroundTask, endBackgroundTaskResolver:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject){
+    
+    //NSLog(@"endBackgroundTask called");
+    dispatch_async(dispatch_get_main_queue(), ^(void){
+        resolve([NSNumber numberWithBool:YES]);
+    });
+    [self endBackgroundUpdateTask];
+    
+}
+
+- (unsigned long) beginBackgroundUpdateTask
+{
+    //NSLog(@"beginBackgroundUpdateTask called");
+    if(backgroundUpdateTask == UIBackgroundTaskInvalid){
+        backgroundUpdateTask = [[UIApplication sharedApplication] beginBackgroundTaskWithExpirationHandler:^{
+            [self endBackgroundUpdateTask];
+        }];
+    }
+    return backgroundUpdateTask;
+}
+
+- (void) endBackgroundUpdateTask
+{
+    //NSLog(@"endBackgroundUpdateTask called");
+    if(backgroundUpdateTask != UIBackgroundTaskInvalid){
+        [[UIApplication sharedApplication] endBackgroundTask: backgroundUpdateTask];
+        backgroundUpdateTask = UIBackgroundTaskInvalid;
+    }
+}
+
 
 - (NSData *)createBodyWithBoundary:(NSString *)boundary
                          path:(NSString *)path
