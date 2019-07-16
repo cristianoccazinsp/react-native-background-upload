@@ -294,24 +294,19 @@ RCT_EXPORT_METHOD(canSuspendIfBackground) {
 
 // requests / releases background task time to the OS
 // returns task id
-RCT_REMAP_METHOD(beginBackgroundTask, beginBackgroundTaskResolver:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject){
-    
+RCT_EXPORT_METHOD(beginBackgroundTask){
     //NSLog(@"beginBackgroundTask called");
-    unsigned long res = [self beginBackgroundUpdateTask];
-    resolve([NSNumber numberWithUnsignedInteger:res]);
+    [self beginBackgroundUpdateTask];
     
 }
 
-RCT_REMAP_METHOD(endBackgroundTask, endBackgroundTaskResolver:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject){
-    
-    //NSLog(@"endBackgroundTask called");
-    dispatch_async(dispatch_get_main_queue(), ^(void){
-        resolve([NSNumber numberWithBool:YES]);
-    });
+RCT_EXPORT_METHOD(endBackgroundTask){
     [self endBackgroundUpdateTask];
     
 }
 
+// we will only allow one single task at a time, so only start if not
+// currently set to be the invalid one
 - (unsigned long) beginBackgroundUpdateTask
 {
     //NSLog(@"beginBackgroundUpdateTask called");

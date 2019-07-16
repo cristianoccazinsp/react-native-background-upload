@@ -135,15 +135,15 @@ export const getRemainingBgTime = (): Promise<number> => {
 // do not call more than once without calling endBackgroundTask
 // useful if we need to do more background processing in addition to network requests
 // canSuspendIfBackground should still be called in case we run out of time.
-export const beginBackgroundTask = (): Promise<number> => {
+export const beginBackgroundTask = () => {
   if (Platform.OS === 'ios') {
-    return NativeModule.beginBackgroundTask();
+    NativeModule.beginBackgroundTask();
   }
 };
 
-export const endBackgroundTask = (): Promise<boolean> => {
+export const endBackgroundTask = () => {
   if (Platform.OS === 'ios') {
-    return NativeModule.endBackgroundTask();
+    NativeModule.endBackgroundTask();
   }
 };
 
