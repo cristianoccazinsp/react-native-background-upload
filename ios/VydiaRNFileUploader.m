@@ -13,7 +13,7 @@ RCT_EXPORT_MODULE();
 UIBackgroundTaskIdentifier backgroundUpdateTask;
 
 //@synthesize bridge = _bridge; // not needed when using  RCTEventEmitter
-static int uploadId = 0;
+static unsigned long uploadId = 0;
 static VydiaRNFileUploader* staticInstance = nil;
 static NSString *BACKGROUND_SESSION_ID = @"ReactNativeBackgroundUpload";
 NSMutableDictionary *_responsesData;
@@ -171,11 +171,6 @@ RCT_EXPORT_METHOD(getFileInfo:(NSString *)path resolve:(RCTPromiseResolveBlock)r
  */
 RCT_EXPORT_METHOD(startUpload:(NSDictionary *)options resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject)
 {
-    int thisUploadId;
-    @synchronized(self.class)
-    {
-        thisUploadId = uploadId++;
-    }
 
     NSString *uploadUrl = options[@"url"];
     __block NSString *fileURI = options[@"path"] ?: @"";
@@ -185,11 +180,23 @@ RCT_EXPORT_METHOD(startUpload:(NSDictionary *)options resolve:(RCTPromiseResolve
     NSString *customUploadId = options[@"customUploadId"];
     NSDictionary *headers = options[@"headers"];
     NSDictionary *parameters = options[@"parameters"];
+    
+    
+    NSString *thisUploadId = customUploadId;
+    
+    if(!thisUploadId){
+        @synchronized(self.class)
+        {
+            thisUploadId = [NSString stringWithFormat:@"%lu", uploadId++];
+
+        }
+    }
+    
 
     @try {
         NSURL *requestUrl = [NSURL URLWithString: uploadUrl];
         if (requestUrl == nil) {
-            @throw @"Request cannot be nil";
+            @throw @"Request URL cannot be nil";
         }
 
         NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:requestUrl];
@@ -240,7 +247,7 @@ RCT_EXPORT_METHOD(startUpload:(NSDictionary *)options resolve:(RCTPromiseResolve
             uploadTask = [[self urlSession] uploadTaskWithRequest:request fromFile:[NSURL URLWithString: fileURI]];
         }
 
-        uploadTask.taskDescription = customUploadId ? customUploadId : [NSString stringWithFormat:@"%i", thisUploadId];
+        uploadTask.taskDescription = thisUploadId;
         //NSLog(@"RNBU will start upload %@", uploadTask.taskDescription);
         [uploadTask resume];
         resolve(uploadTask.taskDescription);
