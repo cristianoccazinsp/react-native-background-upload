@@ -303,12 +303,19 @@ RCT_EXPORT_METHOD(canSuspendIfBackground) {
 // returns task id
 RCT_EXPORT_METHOD(beginBackgroundTask){
     //NSLog(@"beginBackgroundTask called");
-    [self beginBackgroundUpdateTask];
+    @synchronized(self.class)
+    {
+        [self beginBackgroundUpdateTask];
+    }
+    
     
 }
 
 RCT_EXPORT_METHOD(endBackgroundTask){
-    [self endBackgroundUpdateTask];
+    @synchronized(self.class)
+    {
+        [self endBackgroundUpdateTask];
+    }
     
 }
 
