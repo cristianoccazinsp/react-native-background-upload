@@ -14,8 +14,8 @@ UIBackgroundTaskIdentifier backgroundUpdateTask;
 
 //@synthesize bridge = _bridge; // not needed when using  RCTEventEmitter
 static unsigned long uploadId = 0;
-static VydiaRNFileUploader* staticInstance = nil;
 static NSString *BACKGROUND_SESSION_ID = @"ReactNativeBackgroundUpload";
+
 NSMutableDictionary *_responsesData;
 NSURLSession *_urlSession = nil;
 bool hasListeners;
@@ -27,11 +27,9 @@ void (^backgroundSessionCompletionHandler)(void) = nil;
 
 -(id) init {
     self = [super init];
-    if (self) {
-        staticInstance = self;
-        _responsesData = [NSMutableDictionary dictionary];
-        backgroundUpdateTask = UIBackgroundTaskInvalid;
-    }
+    _responsesData = [NSMutableDictionary dictionary];
+    backgroundUpdateTask = UIBackgroundTaskInvalid;
+    
     return self;
 }
 
@@ -42,9 +40,8 @@ void (^backgroundSessionCompletionHandler)(void) = nil;
     dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, delayInSeconds * NSEC_PER_SEC);
 
     dispatch_after(popTime, dispatch_get_main_queue(), ^(void){
-        if (staticInstance == nil) return;
         if (hasListeners) {
-            [staticInstance sendEventWithName:eventName body:body];
+            [self sendEventWithName:eventName body:body];
         }
     });
 
