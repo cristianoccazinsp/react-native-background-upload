@@ -1,6 +1,7 @@
-# Forked repo from https://github.com/Vydia/react-native-background-upload used to remove android support (which is outdated and can be achieved with just fetch and a foreground service). Also updated to allow non file uploads with multipart
+# Forked repo from https://github.com/Vydia/react-native-background-upload used to remove android support (which is outdated and can be achieved with just fetch and a foreground service). Also updated to allow non file uploads with multipart and request background time.
 
 "react-native-background-upload": "github:cristianoccazinsp/react-native-background-upload"
+Note: Docs outdated.
 
 
 # react-native-background-upload [![npm version](https://badge.fury.io/js/react-native-background-upload.svg)](https://badge.fury.io/js/react-native-background-upload)

@@ -33,7 +33,7 @@ const eventPrefix = 'RNFileUploader-'
 const eventEmitter = new NativeEventEmitter(NativeModule);
 
 // add event listeners so they always fire on the native side
-if (NativeModules.VydiaRNFileUploader) {
+if (Platform.OS === 'ios') {
   const identity = () => {};
   eventEmitter.addListener(eventPrefix + 'progress', identity)
   eventEmitter.addListener(eventPrefix + 'error', identity)
@@ -128,22 +128,26 @@ export const getRemainingBgTime = (): Promise<number> => {
   if (Platform.OS === 'ios') {
     return NativeModule.getRemainingBgTime();
   }
+  return Promise.resolve(10 * 60 * 24) // dummy for android, large number
 };
 
-// marks the beginning of a background task
+// marks the beginning of a background task and returns its ID
 // in order to request extra background time
 // do not call more than once without calling endBackgroundTask
 // useful if we need to do more background processing in addition to network requests
 // canSuspendIfBackground should still be called in case we run out of time.
-export const beginBackgroundTask = () => {
+export const beginBackgroundTask = (): Promise<number>  => {
   if (Platform.OS === 'ios') {
-    NativeModule.beginBackgroundTask();
+    return NativeModule.beginBackgroundTask();
   }
+  return Promise.resolve(0); // dummy for android
 };
 
-export const endBackgroundTask = () => {
+// marks the end of background task using the id returned by begin
+// failing to call this might end up on app termination
+export const endBackgroundTask = (id: number) => {
   if (Platform.OS === 'ios') {
-    NativeModule.endBackgroundTask();
+    NativeModule.endBackgroundTask(id);
   }
 };
 

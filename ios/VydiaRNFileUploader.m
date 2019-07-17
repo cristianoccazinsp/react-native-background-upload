@@ -10,7 +10,7 @@
 
 RCT_EXPORT_MODULE();
 
-UIBackgroundTaskIdentifier backgroundUpdateTask;
+
 
 //@synthesize bridge = _bridge; // not needed when using  RCTEventEmitter
 static unsigned long uploadId = 0;
@@ -27,8 +27,9 @@ void (^backgroundSessionCompletionHandler)(void) = nil;
 
 -(id) init {
     self = [super init];
-    _responsesData = [NSMutableDictionary dictionary];
-    backgroundUpdateTask = UIBackgroundTaskInvalid;
+    if(self){
+        _responsesData = [NSMutableDictionary dictionary];
+    }
     
     return self;
 }
@@ -305,45 +306,40 @@ RCT_EXPORT_METHOD(canSuspendIfBackground) {
 
 // requests / releases background task time to the OS
 // returns task id
-RCT_EXPORT_METHOD(beginBackgroundTask){
-    //NSLog(@"beginBackgroundTask called");
-    @synchronized(self.class)
-    {
-        [self beginBackgroundUpdateTask];
-    }
+RCT_REMAP_METHOD(beginBackgroundTask, beginBackgroundTaskResolver:(RCTPromiseResolveBlock)resolve
+                 rejecter:(RCTPromiseRejectBlock)reject){
     
+    __block NSUInteger taskId = UIBackgroundTaskInvalid;
+    
+    taskId = [[UIApplication sharedApplication] beginBackgroundTaskWithExpirationHandler:^{
+        //NSLog(@"RNBU beginBackgroundTaskWithExpirationHandler id: %ul", taskId);
+        if (taskId != UIBackgroundTaskInvalid){
+            [[UIApplication sharedApplication] endBackgroundTask: taskId];
+        }
+    }];
+    
+    //NSLog(@"RNBU beginBackgroundTask id: %ul", taskId);
+    resolve([NSNumber numberWithUnsignedLong:taskId]);
     
 }
 
-RCT_EXPORT_METHOD(endBackgroundTask){
-    @synchronized(self.class)
-    {
-        [self endBackgroundUpdateTask];
-    }
+
+RCT_EXPORT_METHOD(endBackgroundTask: (NSUInteger)taskId resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject){
     
-}
-
-// we will only allow one single task at a time, so only start if not
-// currently set to be the invalid one
-- (unsigned long) beginBackgroundUpdateTask
-{
-    //NSLog(@"beginBackgroundUpdateTask called");
-    if(backgroundUpdateTask == UIBackgroundTaskInvalid){
-        backgroundUpdateTask = [[UIApplication sharedApplication] beginBackgroundTaskWithExpirationHandler:^{
-            [self endBackgroundUpdateTask];
-        }];
+    @try{
+        if(taskId != UIBackgroundTaskInvalid){
+            [[UIApplication sharedApplication] endBackgroundTask: taskId];
+        }
+        
+        //NSLog(@"RNBU endBackgroundTask id: %ul", taskId);
+        resolve([NSNumber numberWithBool:YES]);
     }
-    return backgroundUpdateTask;
-}
-
-- (void) endBackgroundUpdateTask
-{
-    //NSLog(@"endBackgroundUpdateTask called");
-    if(backgroundUpdateTask != UIBackgroundTaskInvalid){
-        [[UIApplication sharedApplication] endBackgroundTask: backgroundUpdateTask];
-        backgroundUpdateTask = UIBackgroundTaskInvalid;
+    @catch (NSException *exception) {
+        //NSLog(@"RNBU endBackgroundTask error: %@", exception);
+        reject(@"RN Uploader", exception.name, nil);
     }
 }
+
 
 
 - (NSData *)createBodyWithBoundary:(NSString *)boundary
