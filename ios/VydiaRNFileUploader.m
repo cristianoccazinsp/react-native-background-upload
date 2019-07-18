@@ -15,6 +15,7 @@ RCT_EXPORT_MODULE();
 //@synthesize bridge = _bridge; // not needed when using  RCTEventEmitter
 static unsigned long uploadId = 0;
 static NSString *BACKGROUND_SESSION_ID = @"ReactNativeBackgroundUpload";
+static VydiaRNFileUploader* _instance = nil;
 
 NSMutableDictionary *_responsesData;
 NSURLSession *_urlSession = nil;
@@ -29,6 +30,7 @@ void (^backgroundSessionCompletionHandler)(void) = nil;
     self = [super init];
     if(self){
         _responsesData = [NSMutableDictionary dictionary];
+        _instance = self;
     }
     
     return self;
@@ -41,8 +43,8 @@ void (^backgroundSessionCompletionHandler)(void) = nil;
     dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, delayInSeconds * NSEC_PER_SEC);
 
     dispatch_after(popTime, dispatch_get_main_queue(), ^(void){
-        if (hasListeners) {
-            [self sendEventWithName:eventName body:body];
+        if (hasListeners && _instance != nil) {
+            [_instance sendEventWithName:eventName body:body];
         }
     });
 
