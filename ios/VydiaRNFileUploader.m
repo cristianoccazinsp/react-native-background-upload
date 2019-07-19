@@ -322,7 +322,19 @@ RCT_REMAP_METHOD(beginBackgroundTask, beginBackgroundTaskResolver:(RCTPromiseRes
             if (hasListeners && _instance != nil) {
                 [_instance sendEventWithName:@"RNFileUploader-bgExpired" body:@{@"id": [NSNumber numberWithUnsignedLong:taskId]}];
             }
-            [[UIApplication sharedApplication] endBackgroundTask: taskId];
+            
+            //double time = [[UIApplication sharedApplication] backgroundTimeRemaining];
+            //NSLog(@"Background xx time Remaining: %f", time);
+            
+            // dispatch async so we give time to JS to finish
+            // we have about 3-4 seconds
+            double delayInSeconds = 0.5;
+            dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, delayInSeconds * NSEC_PER_SEC);
+            
+            dispatch_after(popTime, dispatch_get_main_queue(), ^(void){
+                [[UIApplication sharedApplication] endBackgroundTask: taskId];
+            });
+            
         }
     }];
     
