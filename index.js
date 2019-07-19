@@ -4,7 +4,7 @@
  */
 import { Platform, NativeModules, NativeEventEmitter } from 'react-native'
 
-export type UploadEvent = 'progress' | 'error' | 'completed' | 'cancelled'
+export type UploadEvent = 'progress' | 'error' | 'completed' | 'cancelled' | 'bgExpired'
 
 export type NotificationArgs = {
   enabled: boolean
@@ -39,6 +39,7 @@ if (Platform.OS === 'ios') {
   eventEmitter.addListener(eventPrefix + 'error', identity)
   eventEmitter.addListener(eventPrefix + 'cancelled', identity)
   eventEmitter.addListener(eventPrefix + 'completed', identity)
+  eventEmitter.addListener(eventPrefix + 'bgExpired', identity)
 }
 
 /*

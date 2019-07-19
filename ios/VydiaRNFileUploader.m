@@ -55,7 +55,8 @@ void (^backgroundSessionCompletionHandler)(void) = nil;
         @"RNFileUploader-progress",
         @"RNFileUploader-error",
         @"RNFileUploader-cancelled",
-        @"RNFileUploader-completed"
+        @"RNFileUploader-completed",
+        @"RNFileUploader-bgExpired"
     ];
 }
 
@@ -316,6 +317,11 @@ RCT_REMAP_METHOD(beginBackgroundTask, beginBackgroundTaskResolver:(RCTPromiseRes
     taskId = [[UIApplication sharedApplication] beginBackgroundTaskWithExpirationHandler:^{
         //NSLog(@"RNBU beginBackgroundTaskWithExpirationHandler id: %ul", taskId);
         if (taskId != UIBackgroundTaskInvalid){
+            
+            // do not use the other send event cause it has a delay
+            if (hasListeners && _instance != nil) {
+                [_instance sendEventWithName:@"RNFileUploader-bgExpired" body:@{@"id": [NSNumber numberWithUnsignedLong:taskId]}];
+            }
             [[UIApplication sharedApplication] endBackgroundTask: taskId];
         }
     }];
