@@ -118,6 +118,8 @@ export const addListener = (eventType: UploadEvent, uploadId: string, listener: 
   })
 }
 
+// call this to let the OS it can suspend again
+// it will be called after a short timeout if it isn't called at all
 export const canSuspendIfBackground = () => {
   if (Platform.OS === 'ios') {
     NativeModule.canSuspendIfBackground();

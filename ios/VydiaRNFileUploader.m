@@ -82,9 +82,12 @@ void (^backgroundSessionCompletionHandler)(void) = nil;
 }
 
 + (void)setBackgroundSessionCompletionHandler:(void (^)(void))handler {
-    backgroundSessionCompletionHandler = handler;
-    //NSLog(@"RNBU setBackgroundSessionCompletionHandler");
+    @synchronized (self.class) {
+        backgroundSessionCompletionHandler = handler;
+        //NSLog(@"RNBU setBackgroundSessionCompletionHandler");
+    }
 }
+    
 
 /*
  Gets file information for the path specified.  Example valid path is: file:///var/mobile/Containers/Data/Application/3C8A0EFB-A316-45C0-A30A-761BF8CCF2F8/tmp/trim.A5F76017-14E9-4890-907E-36A045AF9436.MOV
@@ -299,10 +302,12 @@ RCT_REMAP_METHOD(getRemainingBgTime, getRemainingBgTimeResolver:(RCTPromiseResol
 RCT_EXPORT_METHOD(canSuspendIfBackground) {
     //NSLog(@"RNBU canSuspendIfBackground");
     dispatch_sync(dispatch_get_main_queue(), ^(void){
-        if (backgroundSessionCompletionHandler) {
-            backgroundSessionCompletionHandler();
-            //NSLog(@"RNBU did call backgroundSessionCompletionHandler (canSuspendIfBackground)");
-            backgroundSessionCompletionHandler = nil;
+        @synchronized (self.class) {
+            if (backgroundSessionCompletionHandler) {
+                backgroundSessionCompletionHandler();
+                //NSLog(@"RNBU did call backgroundSessionCompletionHandler (canSuspendIfBackground)");
+                backgroundSessionCompletionHandler = nil;
+            }
         }
     });
 }
@@ -474,12 +479,25 @@ totalBytesExpectedToSend:(int64_t)totalBytesExpectedToSend {
 }
 
 
-// no longer needed, JS application must handle it accordingly.
-//- (void)URLSessionDidFinishEventsForBackgroundURLSession:(NSURLSession *)session {
-//    NSLog(@"RNBU URLSessionDidFinishEventsForBackgroundURLSession");
-//    if (backgroundSessionCompletionHandler) {
-//
-//    }
-//}
+// this will allow the app *technically* to wake up, run some code
+// and then sleep. We will set a very short timeout (less than 5 seconds)
+// to call the completion handler if it wasn't called already
+- (void)URLSessionDidFinishEventsForBackgroundURLSession:(NSURLSession *)session {
+    //NSLog(@"RNBU URLSessionDidFinishEventsForBackgroundURLSession");
+    
+    if (backgroundSessionCompletionHandler) {
+        double delayInSeconds = 4;
+        dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, delayInSeconds * NSEC_PER_SEC);
+        dispatch_after(popTime, dispatch_get_main_queue(), ^(void){
+            @synchronized (self.class) {
+                if (backgroundSessionCompletionHandler) {
+                    backgroundSessionCompletionHandler();
+                    //NSLog(@"RNBU did call backgroundSessionCompletionHandler (URLSessionDidFinishEventsForBackgroundURLSession)");
+                    backgroundSessionCompletionHandler = nil;
+                }
+            }
+        });
+    }
+}
 
 @end
