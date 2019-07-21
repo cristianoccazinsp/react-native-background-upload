@@ -409,6 +409,11 @@ RCT_EXPORT_METHOD(endBackgroundTask: (NSUInteger)taskId resolve:(RCTPromiseResol
     @synchronized (self.class) {
         if (_urlSession == nil) {
             NSURLSessionConfiguration *sessionConfiguration = [NSURLSessionConfiguration backgroundSessionConfigurationWithIdentifier:BACKGROUND_SESSION_ID];
+            
+            // UPDATE: Enforce a timeout here because we will otherwise
+            // not get errors if the server times out
+            sessionConfiguration.timeoutIntervalForResource = 5 * 60;
+            
             _urlSession = [NSURLSession sessionWithConfiguration:sessionConfiguration delegate:self delegateQueue:nil];
         }
     }
