@@ -321,12 +321,14 @@ RCT_REMAP_METHOD(beginBackgroundTask, beginBackgroundTaskResolver:(RCTPromiseRes
     
     taskId = [[UIApplication sharedApplication] beginBackgroundTaskWithExpirationHandler:^{
         //NSLog(@"RNBU beginBackgroundTaskWithExpirationHandler id: %ul", taskId);
+        
+        // do not use the other send event cause it has a delay
+        // always send expire event, even if task id is invalid
+        if (hasListeners && _instance != nil) {
+            [_instance sendEventWithName:@"RNFileUploader-bgExpired" body:@{@"id": [NSNumber numberWithUnsignedLong:taskId]}];
+        }
+        
         if (taskId != UIBackgroundTaskInvalid){
-            
-            // do not use the other send event cause it has a delay
-            if (hasListeners && _instance != nil) {
-                [_instance sendEventWithName:@"RNFileUploader-bgExpired" body:@{@"id": [NSNumber numberWithUnsignedLong:taskId]}];
-            }
             
             //double time = [[UIApplication sharedApplication] backgroundTimeRemaining];
             //NSLog(@"Background xx time Remaining: %f", time);
