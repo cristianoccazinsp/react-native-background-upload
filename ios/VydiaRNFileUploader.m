@@ -333,7 +333,7 @@ RCT_REMAP_METHOD(beginBackgroundTask, beginBackgroundTaskResolver:(RCTPromiseRes
             
             // dispatch async so we give time to JS to finish
             // we have about 3-4 seconds
-            double delayInSeconds = 0.5;
+            double delayInSeconds = 0.7;
             dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, delayInSeconds * NSEC_PER_SEC);
             
             dispatch_after(popTime, dispatch_get_main_queue(), ^(void){
