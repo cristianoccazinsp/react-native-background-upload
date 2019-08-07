@@ -27,6 +27,7 @@ Note: if you are installing on React Native < 0.47, use `react-native-background
 
 ### Automatic Native Library Linking
 
+NO LONGER NEEDED
 `react-native link react-native-background-upload`
 
 ### Or, Manually Link It
