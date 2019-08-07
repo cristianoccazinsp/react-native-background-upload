@@ -27,57 +27,8 @@ Note: if you are installing on React Native < 0.47, use `react-native-background
 
 ### Automatic Native Library Linking
 
-NO LONGER NEEDED
+NO LONGER NEEDED. RN 0.60 will auto link. Header import is still needed if we want to listen to events
 `react-native link react-native-background-upload`
-
-### Or, Manually Link It
-
-#### iOS
-
-1. In the XCode's "Project navigator", right click on your project's Libraries folder ➜ `Add Files to <...>`
-2. Go to `node_modules` ➜ `react-native-background-upload` ➜ `ios` ➜ select `VydiaRNFileUploader.xcodeproj`
-3. In the project `Build Settings`, search for `Header Search Paths` and add `$(SRCROOT)/../node_modules/react-native-background-upload/ios` to the list (non-recursive).
-4. Add `VydiaRNFileUploader.a` to `Build Phases -> Link Binary With Libraries`
-
-#### Android
-1. Add the following lines to `android/settings.gradle`:
-
-    ```gradle
-    include ':react-native-background-upload'
-    project(':react-native-background-upload').projectDir = new File(settingsDir, '../node_modules/react-native-background-upload/android')
-    ```
-2. Add the compile and resolutionStrategy line to the dependencies in `android/app/build.gradle`:
-
-    ```gradle
-    configurations.all { resolutionStrategy.force 'com.squareup.okhttp3:okhttp:3.4.1' } // required by react-native-background-upload until React Native supports okhttp >= okhttp 3.5
-
-    dependencies {
-        compile project(':react-native-background-upload')
-    }
-    ```
-
-
-3. Add the import and link the package in `MainApplication.java`:
-
-    ```java
-    import com.vydia.RNUploader.UploaderReactPackage;  <-- add this import
-
-    public class MainApplication extends Application implements ReactApplication {
-        @Override
-        protected List<ReactPackage> getPackages() {
-            return Arrays.<ReactPackage>asList(
-                new MainReactPackage(),
-                new UploaderReactPackage() // <-- add this line
-            );
-        }
-    }
-    ```
-
-4. Ensure Android SDK versions.  Open your app's `android/app/build.gradle` file.  Ensure `compileSdkVersion` and `targetSdkVersion` are 25.  Otherwise you'll get compilation errors.
-
-## 3. Expo
-
-To use this library with [Expo](https://expo.io) one must first detach (eject) the project and follow [step 2](#2-link-native-code) instructions. Additionally on iOS there is a must to add a Header Search Path to other dependencies which are managed using Pods. To do so one has to add `$(SRCROOT)/../../../ios/Pods/Headers/Public` to Header Search Path in `VydiaRNFileUploader` module using XCode.
 
 # Usage
 
@@ -306,7 +257,7 @@ Event Data
 By default, iOS does not wake up your app when uploads are done while your app is not in the foreground. To receive the upload events (`error`, `completed`...) while your app is in the background, add the following to your `AppDelegate.m`:
 
 ```objective-c
-#import "VydiaRNFileUploader.h"
+#import <VydiaRNFileUploader.h>
 
 - (void)application:(UIApplication *)application
         handleEventsForBackgroundURLSession:(NSString *)identifier
@@ -404,7 +355,7 @@ I'm not receiving events while the app is in background!
 > There are no background events on Android. For iOS, add the following in your `AppDelegate.m`:
 
 ```objective-c
-#import "VydiaRNFileUploader.h"
+#import <VydiaRNFileUploader.h>
 
 - (void)application:(UIApplication *)application
         handleEventsForBackgroundURLSession:(NSString *)identifier

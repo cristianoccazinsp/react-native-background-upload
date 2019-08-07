@@ -1,18 +1,19 @@
-require "json"
+require 'json'
 
- json = File.read(File.join(__dir__, "package.json"))
- package = JSON.parse(json).deep_symbolize_keys
+package = JSON.parse(File.read(File.join(__dir__, 'package.json')))
 
- Pod::Spec.new do |s|
-   s.name = package[:name]
-   s.version = package[:version]
-   s.license = { type: "MIT" }
-   s.homepage = "https://github.com/Vydia/react-native-background-upload"
-   s.authors = package[:author]
-   s.summary = package[:description]
-   s.source = { git: package[:repository][:url] }
-   s.source_files = "ios/*.{h,m}"
-   s.platform = :ios, "8.0"
+Pod::Spec.new do |s|
+  s.name         = package['name']
+  s.version      = package['version']
+  s.summary      = package['description']
+  s.license      = package['license']
 
-   s.dependency "React"
- end
+  s.authors      = package['author']
+  s.homepage     = package['homepage']
+  s.platform     = :ios, "9.0"
+
+  s.source       = { :git => "https://github.com/cristianoccazinsp/react-native-background-upload", :tag => "v#{s.version}" }
+  s.source_files  = "ios/**/*.{h,m}"
+
+  s.dependency 'React'
+end
