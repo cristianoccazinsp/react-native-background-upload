@@ -32,7 +32,7 @@ void (^backgroundSessionCompletionHandler)(void) = nil;
         _responsesData = [NSMutableDictionary dictionary];
         _instance = self;
     }
-    
+
     return self;
 }
 
@@ -71,7 +71,7 @@ void (^backgroundSessionCompletionHandler)(void) = nil;
 //        NSLog(@"RNBU startObserving: recreate urlSession if necessary");
 //        [self urlSession];
 //    });
-    
+
     // why was the delay even needed?
     //NSLog(@"RNBU startObserving: recreate urlSession if necessary");
     [self urlSession];
@@ -87,7 +87,7 @@ void (^backgroundSessionCompletionHandler)(void) = nil;
         //NSLog(@"RNBU setBackgroundSessionCompletionHandler");
     }
 }
-    
+
 
 /*
  Gets file information for the path specified.  Example valid path is: file:///var/mobile/Containers/Data/Application/3C8A0EFB-A316-45C0-A30A-761BF8CCF2F8/tmp/trim.A5F76017-14E9-4890-907E-36A045AF9436.MOV
@@ -188,10 +188,10 @@ RCT_EXPORT_METHOD(startUpload:(NSDictionary *)options resolve:(RCTPromiseResolve
     NSString *customUploadId = options[@"customUploadId"];
     NSDictionary *headers = options[@"headers"];
     NSDictionary *parameters = options[@"parameters"];
-    
-    
+
+
     NSString *thisUploadId = customUploadId;
-    
+
     if(!thisUploadId){
         @synchronized(self.class)
         {
@@ -199,7 +199,7 @@ RCT_EXPORT_METHOD(startUpload:(NSDictionary *)options resolve:(RCTPromiseResolve
 
         }
     }
-    
+
 
     @try {
         NSURL *requestUrl = [NSURL URLWithString: uploadUrl];
@@ -243,11 +243,11 @@ RCT_EXPORT_METHOD(startUpload:(NSDictionary *)options resolve:(RCTPromiseResolve
             [request setValue:[NSString stringWithFormat:@"multipart/form-data; boundary=%@", uuidStr] forHTTPHeaderField:@"Content-Type"];
 
             NSData *httpBody = [self createBodyWithBoundary:uuidStr path:fileURI parameters: parameters fieldName:fieldName];
-            
+
             [request setHTTPBody: httpBody];
             uploadTask = [[self urlSession] uploadTaskWithStreamedRequest:request];
-            
-            
+
+
         } else {
             if (parameters.count > 0) {
                 reject(@"RN Uploader", @"Parameters supported only in multipart type", nil);
@@ -301,7 +301,11 @@ RCT_REMAP_METHOD(getRemainingBgTime, getRemainingBgTimeResolver:(RCTPromiseResol
 // Let the OS it can suspend, must be called after enqueing all requests
 RCT_EXPORT_METHOD(canSuspendIfBackground) {
     //NSLog(@"RNBU canSuspendIfBackground");
-    dispatch_sync(dispatch_get_main_queue(), ^(void){
+
+    // run with delay to give JS some time
+    double delayInSeconds = 0.2;
+    dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, delayInSeconds * NSEC_PER_SEC);
+    dispatch_after(popTime, dispatch_get_main_queue(), ^(void){
         @synchronized (self.class) {
             if (backgroundSessionCompletionHandler) {
                 backgroundSessionCompletionHandler();
@@ -316,48 +320,48 @@ RCT_EXPORT_METHOD(canSuspendIfBackground) {
 // returns task id
 RCT_REMAP_METHOD(beginBackgroundTask, beginBackgroundTaskResolver:(RCTPromiseResolveBlock)resolve
                  rejecter:(RCTPromiseRejectBlock)reject){
-    
+
     __block NSUInteger taskId = UIBackgroundTaskInvalid;
-    
+
     taskId = [[UIApplication sharedApplication] beginBackgroundTaskWithExpirationHandler:^{
         //NSLog(@"RNBU beginBackgroundTaskWithExpirationHandler id: %ul", taskId);
-        
+
         // do not use the other send event cause it has a delay
         // always send expire event, even if task id is invalid
         if (hasListeners && _instance != nil) {
             [_instance sendEventWithName:@"RNFileUploader-bgExpired" body:@{@"id": [NSNumber numberWithUnsignedLong:taskId]}];
         }
-        
+
         if (taskId != UIBackgroundTaskInvalid){
-            
+
             //double time = [[UIApplication sharedApplication] backgroundTimeRemaining];
             //NSLog(@"Background xx time Remaining: %f", time);
-            
+
             // dispatch async so we give time to JS to finish
             // we have about 3-4 seconds
             double delayInSeconds = 0.7;
             dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, delayInSeconds * NSEC_PER_SEC);
-            
+
             dispatch_after(popTime, dispatch_get_main_queue(), ^(void){
                 [[UIApplication sharedApplication] endBackgroundTask: taskId];
             });
-            
+
         }
     }];
-    
+
     //NSLog(@"RNBU beginBackgroundTask id: %ul", taskId);
     resolve([NSNumber numberWithUnsignedLong:taskId]);
-    
+
 }
 
 
 RCT_EXPORT_METHOD(endBackgroundTask: (NSUInteger)taskId resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject){
-    
+
     @try{
         if(taskId != UIBackgroundTaskInvalid){
             [[UIApplication sharedApplication] endBackgroundTask: taskId];
         }
-        
+
         //NSLog(@"RNBU endBackgroundTask id: %ul", taskId);
         resolve([NSNumber numberWithBool:YES]);
     }
@@ -399,11 +403,11 @@ RCT_EXPORT_METHOD(endBackgroundTask: (NSUInteger)taskId resolve:(RCTPromiseResol
         [httpBody appendData:[[NSString stringWithFormat:@"Content-Type: %@\r\n\r\n", mimetype] dataUsingEncoding:NSUTF8StringEncoding]];
         [httpBody appendData:data];
         [httpBody appendData:[@"\r\n" dataUsingEncoding:NSUTF8StringEncoding]];
-        
+
     }
-    
+
     [httpBody appendData:[[NSString stringWithFormat:@"--%@--\r\n", boundary] dataUsingEncoding:NSUTF8StringEncoding]];
-    
+
     return httpBody;
 }
 
@@ -411,11 +415,11 @@ RCT_EXPORT_METHOD(endBackgroundTask: (NSUInteger)taskId resolve:(RCTPromiseResol
     @synchronized (self.class) {
         if (_urlSession == nil) {
             NSURLSessionConfiguration *sessionConfiguration = [NSURLSessionConfiguration backgroundSessionConfigurationWithIdentifier:BACKGROUND_SESSION_ID];
-            
+
             // UPDATE: Enforce a timeout here because we will otherwise
             // not get errors if the server times out
             sessionConfiguration.timeoutIntervalForResource = 5 * 60;
-            
+
             _urlSession = [NSURLSession sessionWithConfiguration:sessionConfiguration delegate:self delegateQueue:nil];
         }
     }
@@ -444,7 +448,7 @@ didCompleteWithError:(NSError *)error {
     } else {
         [data setObject:[NSNull null] forKey:@"responseBody"];
     }
-    
+
 
     if (error == nil) {
         [self _sendEventWithName:@"RNFileUploader-completed" body:data];
@@ -491,7 +495,7 @@ totalBytesExpectedToSend:(int64_t)totalBytesExpectedToSend {
 // to call the completion handler if it wasn't called already
 - (void)URLSessionDidFinishEventsForBackgroundURLSession:(NSURLSession *)session {
     //NSLog(@"RNBU URLSessionDidFinishEventsForBackgroundURLSession");
-    
+
     if (backgroundSessionCompletionHandler) {
         double delayInSeconds = 4;
         dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, delayInSeconds * NSEC_PER_SEC);
