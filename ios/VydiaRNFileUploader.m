@@ -11,29 +11,40 @@
 RCT_EXPORT_MODULE();
 
 
-
-//@synthesize bridge = _bridge; // not needed when using  RCTEventEmitter
 static unsigned long uploadId = 0;
 static NSString *BACKGROUND_SESSION_ID = @"ReactNativeBackgroundUpload";
-static VydiaRNFileUploader* _instance = nil;
+static VydiaRNFileUploader *sharedInstance = nil;
+
 
 NSMutableDictionary *_responsesData;
 NSURLSession *_urlSession = nil;
 bool hasListeners;
 void (^backgroundSessionCompletionHandler)(void) = nil;
 
+
 + (BOOL)requiresMainQueueSetup {
     return NO;
 }
 
--(id) init {
-    self = [super init];
-    if(self){
+- (id)initPrivate {
+    if (self = [super init]) {
+        hasListeners = NO;
         _responsesData = [NSMutableDictionary dictionary];
-        _instance = self;
     }
-
     return self;
+}
+
+// singleton access
++ (VydiaRNFileUploader*)sharedInstance {
+    @synchronized(self) {
+        if (sharedInstance == nil)
+            sharedInstance = [[self alloc] initPrivate];
+    }
+    return sharedInstance;
+}
+
+-(id) init {
+    return [VydiaRNFileUploader sharedInstance];
 }
 
 - (void)_sendEventWithName:(NSString *)eventName body:(id)body {
@@ -43,8 +54,8 @@ void (^backgroundSessionCompletionHandler)(void) = nil;
     dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, delayInSeconds * NSEC_PER_SEC);
 
     dispatch_after(popTime, dispatch_get_main_queue(), ^(void){
-        if (hasListeners && _instance != nil) {
-            [_instance sendEventWithName:eventName body:body];
+        if (hasListeners) {
+            [self sendEventWithName:eventName body:body];
         }
     });
 
@@ -81,8 +92,8 @@ void (^backgroundSessionCompletionHandler)(void) = nil;
     hasListeners = NO;
 }
 
-+ (void)setBackgroundSessionCompletionHandler:(void (^)(void))handler {
-    @synchronized (self.class) {
+- (void)setBackgroundSessionCompletionHandler:(void (^)(void))handler {
+    @synchronized (self) {
         backgroundSessionCompletionHandler = handler;
         //NSLog(@"RNBU setBackgroundSessionCompletionHandler");
     }
@@ -193,7 +204,7 @@ RCT_EXPORT_METHOD(startUpload:(NSDictionary *)options resolve:(RCTPromiseResolve
     NSString *thisUploadId = customUploadId;
 
     if(!thisUploadId){
-        @synchronized(self.class)
+        @synchronized(self)
         {
             thisUploadId = [NSString stringWithFormat:@"%lu", uploadId++];
 
@@ -306,7 +317,7 @@ RCT_EXPORT_METHOD(canSuspendIfBackground) {
     double delayInSeconds = 0.2;
     dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, delayInSeconds * NSEC_PER_SEC);
     dispatch_after(popTime, dispatch_get_main_queue(), ^(void){
-        @synchronized (self.class) {
+        @synchronized (self) {
             if (backgroundSessionCompletionHandler) {
                 backgroundSessionCompletionHandler();
                 //NSLog(@"RNBU did call backgroundSessionCompletionHandler (canSuspendIfBackground)");
@@ -328,8 +339,8 @@ RCT_REMAP_METHOD(beginBackgroundTask, beginBackgroundTaskResolver:(RCTPromiseRes
 
         // do not use the other send event cause it has a delay
         // always send expire event, even if task id is invalid
-        if (hasListeners && _instance != nil) {
-            [_instance sendEventWithName:@"RNFileUploader-bgExpired" body:@{@"id": [NSNumber numberWithUnsignedLong:taskId]}];
+        if (hasListeners) {
+            [self sendEventWithName:@"RNFileUploader-bgExpired" body:@{@"id": [NSNumber numberWithUnsignedLong:taskId]}];
         }
 
         if (taskId != UIBackgroundTaskInvalid){
@@ -412,7 +423,7 @@ RCT_EXPORT_METHOD(endBackgroundTask: (NSUInteger)taskId resolve:(RCTPromiseResol
 }
 
 - (NSURLSession *)urlSession {
-    @synchronized (self.class) {
+    @synchronized (self) {
         if (_urlSession == nil) {
             NSURLSessionConfiguration *sessionConfiguration = [NSURLSessionConfiguration backgroundSessionConfigurationWithIdentifier:BACKGROUND_SESSION_ID];
 
@@ -500,7 +511,7 @@ totalBytesExpectedToSend:(int64_t)totalBytesExpectedToSend {
         double delayInSeconds = 4;
         dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, delayInSeconds * NSEC_PER_SEC);
         dispatch_after(popTime, dispatch_get_main_queue(), ^(void){
-            @synchronized (self.class) {
+            @synchronized (self) {
                 if (backgroundSessionCompletionHandler) {
                     backgroundSessionCompletionHandler();
                     //NSLog(@"RNBU did call backgroundSessionCompletionHandler (URLSessionDidFinishEventsForBackgroundURLSession)");

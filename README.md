@@ -206,7 +206,7 @@ By default, iOS does not wake up your app when uploads are done while your app i
 - (void)application:(UIApplication *)application
 handleEventsForBackgroundURLSession:(NSString *)identifier
   completionHandler:(void (^)(void))completionHandler {
-  [VydiaRNFileUploader setBackgroundSessionCompletionHandler:completionHandler];
+  [[VydiaRNFileUploader sharedInstance] setBackgroundSessionCompletionHandler:completionHandler];
 }
 ```
 
