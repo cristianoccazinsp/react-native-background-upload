@@ -54,7 +54,7 @@ void (^backgroundSessionCompletionHandler)(void) = nil;
     dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, delayInSeconds * NSEC_PER_SEC);
 
     dispatch_after(popTime, dispatch_get_main_queue(), ^(void){
-        if (hasListeners) {
+        if (hasListeners && self.bridge != nil) {
             [self sendEventWithName:eventName body:body];
         }
     });
@@ -339,7 +339,7 @@ RCT_REMAP_METHOD(beginBackgroundTask, beginBackgroundTaskResolver:(RCTPromiseRes
 
         // do not use the other send event cause it has a delay
         // always send expire event, even if task id is invalid
-        if (hasListeners) {
+        if (hasListeners && self.bridge != nil) {
             [self sendEventWithName:@"RNFileUploader-bgExpired" body:@{@"id": [NSNumber numberWithUnsignedLong:taskId]}];
         }
 
