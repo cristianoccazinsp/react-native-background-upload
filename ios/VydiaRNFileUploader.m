@@ -450,6 +450,16 @@ didCompleteWithError:(NSError *)error {
     {
         [data setObject:[NSNumber numberWithInteger:response.statusCode] forKey:@"responseCode"];
     }
+    
+    // add headers
+    NSMutableDictionary *headers = [[NSMutableDictionary alloc] init];
+    NSDictionary *respHeaders = response.allHeaderFields;
+    for (NSString *key in respHeaders)
+    {
+        headers[[key lowercaseString]] = respHeaders[key];
+    }
+    [data setObject:headers forKey:@"responseHeaders"];
+    
     // Add data that was collected earlier by the didReceiveData method
     NSMutableData *responseData = _responsesData[@(task.taskIdentifier)];
     if (responseData) {
