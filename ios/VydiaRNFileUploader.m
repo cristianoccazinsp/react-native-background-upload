@@ -18,7 +18,7 @@ static VydiaRNFileUploader *sharedInstance = nil;
 
 NSMutableDictionary *_responsesData;
 NSURLSession *_urlSession = nil;
-bool hasListeners;
+
 void (^backgroundSessionCompletionHandler)(void) = nil;
 
 
@@ -28,7 +28,7 @@ void (^backgroundSessionCompletionHandler)(void) = nil;
 
 - (id)initPrivate {
     if (self = [super init]) {
-        hasListeners = NO;
+        self.isObserving = NO;
         _responsesData = [NSMutableDictionary dictionary];
     }
     return self;
@@ -54,7 +54,7 @@ void (^backgroundSessionCompletionHandler)(void) = nil;
     dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, delayInSeconds * NSEC_PER_SEC);
 
     dispatch_after(popTime, dispatch_get_main_queue(), ^(void){
-        if (hasListeners && self.bridge != nil) {
+        if (self.isObserving && self.bridge != nil) {
             [self sendEventWithName:eventName body:body];
         }
     });
@@ -72,7 +72,7 @@ void (^backgroundSessionCompletionHandler)(void) = nil;
 }
 
 - (void)startObserving {
-    hasListeners = YES;
+    self.isObserving = YES;
 
     // JS side is ready to receive events; create the background url session if necessary
     // iOS will then deliver the tasks completed while the app was dead (if any)
@@ -89,7 +89,7 @@ void (^backgroundSessionCompletionHandler)(void) = nil;
 }
 
 -(void)stopObserving {
-    hasListeners = NO;
+    self.isObserving = NO;
 }
 
 - (void)setBackgroundSessionCompletionHandler:(void (^)(void))handler {
@@ -339,7 +339,7 @@ RCT_REMAP_METHOD(beginBackgroundTask, beginBackgroundTaskResolver:(RCTPromiseRes
 
         // do not use the other send event cause it has a delay
         // always send expire event, even if task id is invalid
-        if (hasListeners && self.bridge != nil) {
+        if (self.isObserving && self.bridge != nil) {
             [self sendEventWithName:@"RNFileUploader-bgExpired" body:@{@"id": [NSNumber numberWithUnsignedLong:taskId]}];
         }
 
