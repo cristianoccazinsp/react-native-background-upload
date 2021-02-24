@@ -14,12 +14,9 @@ RCT_EXPORT_MODULE();
 static unsigned long uploadId = 0;
 static NSString *BACKGROUND_SESSION_ID = @"ReactNativeBackgroundUpload";
 static VydiaRNFileUploader *sharedInstance = nil;
-
-
-NSMutableDictionary *_responsesData;
-NSURLSession *_urlSession = nil;
-
-void (^backgroundSessionCompletionHandler)(void) = nil;
+static NSMutableDictionary *_responsesData;
+static NSURLSession *_urlSession = nil;
+static void (^backgroundSessionCompletionHandler)(void) = nil;
 
 
 + (BOOL)requiresMainQueueSetup {
