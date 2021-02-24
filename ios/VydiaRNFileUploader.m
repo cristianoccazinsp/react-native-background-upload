@@ -6,17 +6,18 @@
 
 #import "VydiaRNFileUploader.h"
 
-@implementation VydiaRNFileUploader
+@implementation VydiaRNFileUploader{
+    unsigned long uploadId;
+    NSMutableDictionary *_responsesData;
+    NSURLSession *_urlSession;
+    void (^backgroundSessionCompletionHandler)(void);
+    BOOL isObserving;
+}
 
 RCT_EXPORT_MODULE();
 
-
-static unsigned long uploadId = 0;
 static NSString *BACKGROUND_SESSION_ID = @"ReactNativeBackgroundUpload";
-static VydiaRNFileUploader *sharedInstance = nil;
-static NSMutableDictionary *_responsesData;
-static NSURLSession *_urlSession = nil;
-static void (^backgroundSessionCompletionHandler)(void) = nil;
+static VydiaRNFileUploader *sharedInstance;
 
 
 + (BOOL)requiresMainQueueSetup {
@@ -25,8 +26,11 @@ static void (^backgroundSessionCompletionHandler)(void) = nil;
 
 - (id)initPrivate {
     if (self = [super init]) {
-        self.isObserving = NO;
+        uploadId = 0;
         _responsesData = [NSMutableDictionary dictionary];
+        _urlSession = nil;
+        backgroundSessionCompletionHandler = nil;
+        isObserving = NO;
     }
     return self;
 }
@@ -51,7 +55,7 @@ static void (^backgroundSessionCompletionHandler)(void) = nil;
     dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, delayInSeconds * NSEC_PER_SEC);
 
     dispatch_after(popTime, dispatch_get_main_queue(), ^(void){
-        if (self.isObserving && self.bridge != nil) {
+        if (self->isObserving && self.bridge != nil) {
             [self sendEventWithName:eventName body:body];
         }
     });
@@ -69,7 +73,7 @@ static void (^backgroundSessionCompletionHandler)(void) = nil;
 }
 
 - (void)startObserving {
-    self.isObserving = YES;
+    isObserving = YES;
 
     // JS side is ready to receive events; create the background url session if necessary
     // iOS will then deliver the tasks completed while the app was dead (if any)
@@ -86,7 +90,7 @@ static void (^backgroundSessionCompletionHandler)(void) = nil;
 }
 
 -(void)stopObserving {
-    self.isObserving = NO;
+    isObserving = NO;
 }
 
 - (void)setBackgroundSessionCompletionHandler:(void (^)(void))handler {
@@ -315,10 +319,10 @@ RCT_EXPORT_METHOD(canSuspendIfBackground) {
     dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, delayInSeconds * NSEC_PER_SEC);
     dispatch_after(popTime, dispatch_get_main_queue(), ^(void){
         @synchronized (self) {
-            if (backgroundSessionCompletionHandler) {
-                backgroundSessionCompletionHandler();
+            if (self->backgroundSessionCompletionHandler) {
+                self->backgroundSessionCompletionHandler();
                 //NSLog(@"RNBU did call backgroundSessionCompletionHandler (canSuspendIfBackground)");
-                backgroundSessionCompletionHandler = nil;
+                self->backgroundSessionCompletionHandler = nil;
             }
         }
     });
@@ -336,7 +340,7 @@ RCT_REMAP_METHOD(beginBackgroundTask, beginBackgroundTaskResolver:(RCTPromiseRes
 
         // do not use the other send event cause it has a delay
         // always send expire event, even if task id is invalid
-        if (self.isObserving && self.bridge != nil) {
+        if (self->isObserving && self.bridge != nil) {
             [self sendEventWithName:@"RNFileUploader-bgExpired" body:@{@"id": [NSNumber numberWithUnsignedLong:taskId]}];
         }
 
@@ -519,10 +523,10 @@ totalBytesExpectedToSend:(int64_t)totalBytesExpectedToSend {
         dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, delayInSeconds * NSEC_PER_SEC);
         dispatch_after(popTime, dispatch_get_main_queue(), ^(void){
             @synchronized (self) {
-                if (backgroundSessionCompletionHandler) {
-                    backgroundSessionCompletionHandler();
+                if (self->backgroundSessionCompletionHandler) {
+                    self->backgroundSessionCompletionHandler();
                     //NSLog(@"RNBU did call backgroundSessionCompletionHandler (URLSessionDidFinishEventsForBackgroundURLSession)");
-                    backgroundSessionCompletionHandler = nil;
+                    self->backgroundSessionCompletionHandler = nil;
                 }
             }
         });
