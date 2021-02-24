@@ -142,10 +142,14 @@ RCT_EXPORT_METHOD(getFileInfo:(NSString *)path resolve:(RCTPromiseResolveBlock)r
     CFStringRef UTI = UTTypeCreatePreferredIdentifierForTag(kUTTagClassFilenameExtension, (__bridge CFStringRef)[fileName pathExtension], NULL);
     CFStringRef MIMEType = UTTypeCopyPreferredTagWithClass(UTI, kUTTagClassMIMEType);
     CFRelease(UTI);
+   
     if (!MIMEType) {
         return @"application/octet-stream";
     }
-    return (__bridge NSString *)(MIMEType);
+    
+    NSString *dest = [NSString stringWithString:(__bridge NSString *)(MIMEType)];
+    CFRelease(MIMEType);
+    return dest;
 }
 
 /*
