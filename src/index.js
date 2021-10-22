@@ -2,13 +2,18 @@
 /**
  * Handles HTTP background file uploads from an iOS device.
  */
-import { Platform, NativeModules, NativeEventEmitter } from 'react-native'
+import {Platform, NativeModules, NativeEventEmitter} from 'react-native';
 
-export type UploadEvent = 'progress' | 'error' | 'completed' | 'cancelled' | 'bgExpired'
+export type UploadEvent =
+  | 'progress'
+  | 'error'
+  | 'completed'
+  | 'cancelled'
+  | 'bgExpired';
 
 export type NotificationArgs = {
-  enabled: boolean
-}
+  enabled: boolean,
+};
 
 export type StartUploadArgs = {
   url: string,
@@ -21,25 +26,24 @@ export type StartUploadArgs = {
   field?: string,
   customUploadId?: string,
   // parameters are supported only in multipart type
-  parameters?: { [string]: string },
+  parameters?: {[string]: string},
   headers?: Object,
-  notification?: NotificationArgs
-}
+  notification?: NotificationArgs,
+};
 
 const NativeModule = NativeModules.VydiaRNFileUploader;
-const eventPrefix = 'RNFileUploader-'
-
+const eventPrefix = 'RNFileUploader-';
 
 const eventEmitter = new NativeEventEmitter(NativeModule);
 
 // add event listeners so they always fire on the native side
 if (Platform.OS === 'ios') {
   const identity = () => {};
-  eventEmitter.addListener(eventPrefix + 'progress', identity)
-  eventEmitter.addListener(eventPrefix + 'error', identity)
-  eventEmitter.addListener(eventPrefix + 'cancelled', identity)
-  eventEmitter.addListener(eventPrefix + 'completed', identity)
-  eventEmitter.addListener(eventPrefix + 'bgExpired', identity)
+  eventEmitter.addListener(eventPrefix + 'progress', identity);
+  eventEmitter.addListener(eventPrefix + 'error', identity);
+  eventEmitter.addListener(eventPrefix + 'cancelled', identity);
+  eventEmitter.addListener(eventPrefix + 'completed', identity);
+  eventEmitter.addListener(eventPrefix + 'bgExpired', identity);
 }
 
 /*
@@ -54,14 +58,13 @@ Returns an object:
 The promise should never be rejected.
 */
 export const getFileInfo = (path: string): Promise<Object> => {
-  return NativeModule.getFileInfo(path)
-  .then(data => {
+  return NativeModule.getFileInfo(path).then((data) => {
     if (data.size) {
-      data.size = +data.size
+      data.size = +data.size;
     }
-    return data
-  })
-}
+    return data;
+  });
+};
 
 /*
 Starts uploading a file to an HTTP endpoint.
@@ -80,7 +83,8 @@ Returns a promise with the string ID of the upload.  Will reject if there is a c
 It is recommended to add listeners in the .then of this promise.
 
 */
-export const startUpload = (options: StartUploadArgs): Promise<string> => NativeModule.startUpload(options)
+export const startUpload = (options: StartUploadArgs): Promise<string> =>
+  NativeModule.startUpload(options);
 
 /*
 Cancels active upload by string ID of the upload.
@@ -99,7 +103,7 @@ export const cancelUpload = (cancelUploadId: string): Promise<boolean> => {
     return Promise.reject(new Error('Upload ID must be a string'));
   }
   return NativeModule.cancelUpload(cancelUploadId);
-}
+};
 
 /*
 Listens for the given event on the given upload ID (resolved from startUpload).
@@ -110,13 +114,17 @@ Events (id is always the upload ID):
   cancelled - { id: string, error: string }
   completed - { id: string }
 */
-export const addListener = (eventType: UploadEvent, uploadId: string, listener: Function) => {
+export const addListener = (
+  eventType: UploadEvent,
+  uploadId: string,
+  listener: Function,
+) => {
   return eventEmitter.addListener(eventPrefix + eventType, (data) => {
     if (!uploadId || !data || !data.id || data.id === uploadId) {
-      listener(data)
+      listener(data);
     }
-  })
-}
+  });
+};
 
 // call this to let the OS it can suspend again
 // it will be called after a short timeout if it isn't called at all
@@ -131,7 +139,7 @@ export const getRemainingBgTime = (): Promise<number> => {
   if (Platform.OS === 'ios') {
     return NativeModule.getRemainingBgTime();
   }
-  return Promise.resolve(10 * 60 * 24) // dummy for android, large number
+  return Promise.resolve(10 * 60 * 24); // dummy for android, large number
 };
 
 // marks the beginning of a background task and returns its ID
@@ -139,11 +147,11 @@ export const getRemainingBgTime = (): Promise<number> => {
 // do not call more than once without calling endBackgroundTask
 // useful if we need to do more background processing in addition to network requests
 // canSuspendIfBackground should still be called in case we run out of time.
-export const beginBackgroundTask = (): Promise<number>  => {
+export const beginBackgroundTask = (): Promise<number> => {
   if (Platform.OS === 'ios') {
     return NativeModule.beginBackgroundTask();
   }
-  return Promise.resolve(0); // dummy for android
+  return Promise.resolve(null); // dummy for android
 };
 
 // marks the end of background task using the id returned by begin
@@ -154,4 +162,13 @@ export const endBackgroundTask = (id: number) => {
   }
 };
 
-export default { startUpload, cancelUpload, addListener, getFileInfo, canSuspendIfBackground, getRemainingBgTime, beginBackgroundTask, endBackgroundTask}
+export default {
+  startUpload,
+  cancelUpload,
+  addListener,
+  getFileInfo,
+  canSuspendIfBackground,
+  getRemainingBgTime,
+  beginBackgroundTask,
+  endBackgroundTask,
+};
