@@ -8,4 +8,5 @@
 @interface VydiaRNFileUploader : RCTEventEmitter <RCTBridgeModule, NSURLSessionTaskDelegate>
     +(VydiaRNFileUploader*)sharedInstance;
     -(void)setBackgroundSessionCompletionHandler:(void (^)(void))handler;
+    @property (atomic) BOOL isObserving;
 @end

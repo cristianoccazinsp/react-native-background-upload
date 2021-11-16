@@ -11,7 +11,6 @@
     NSMutableDictionary *_responsesData;
     NSURLSession *_urlSession;
     void (^backgroundSessionCompletionHandler)(void);
-    BOOL isObserving;
 }
 
 RCT_EXPORT_MODULE();
@@ -21,7 +20,12 @@ static VydiaRNFileUploader *sharedInstance;
 
 
 + (BOOL)requiresMainQueueSetup {
-    return NO;
+    return YES;
+}
+
+- (dispatch_queue_t)methodQueue
+{
+  return dispatch_get_main_queue();
 }
 
 - (id)initPrivate {
@@ -30,7 +34,7 @@ static VydiaRNFileUploader *sharedInstance;
         _responsesData = [NSMutableDictionary dictionary];
         _urlSession = nil;
         backgroundSessionCompletionHandler = nil;
-        isObserving = NO;
+        self.isObserving = NO;
     }
     return self;
 }
@@ -55,7 +59,9 @@ static VydiaRNFileUploader *sharedInstance;
     dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, delayInSeconds * NSEC_PER_SEC);
 
     dispatch_after(popTime, dispatch_get_main_queue(), ^(void){
-        if (self->isObserving && self.bridge != nil) {
+        // do not check for self->isObserving for now
+        // as for some reason it is sometimes never set to YES after an app refresh
+        if (self.bridge != nil) {
             [self sendEventWithName:eventName body:body];
         }
     });
@@ -73,7 +79,7 @@ static VydiaRNFileUploader *sharedInstance;
 }
 
 - (void)startObserving {
-    isObserving = YES;
+    self.isObserving = YES;
 
     // JS side is ready to receive events; create the background url session if necessary
     // iOS will then deliver the tasks completed while the app was dead (if any)
@@ -90,7 +96,7 @@ static VydiaRNFileUploader *sharedInstance;
 }
 
 -(void)stopObserving {
-    isObserving = NO;
+    self.isObserving = NO;
 }
 
 - (void)setBackgroundSessionCompletionHandler:(void (^)(void))handler {
@@ -344,7 +350,7 @@ RCT_REMAP_METHOD(beginBackgroundTask, beginBackgroundTaskResolver:(RCTPromiseRes
 
         // do not use the other send event cause it has a delay
         // always send expire event, even if task id is invalid
-        if (self->isObserving && self.bridge != nil) {
+        if (self.isObserving && self.bridge != nil) {
             [self sendEventWithName:@"RNFileUploader-bgExpired" body:@{@"id": [NSNumber numberWithUnsignedLong:taskId]}];
         }
 
